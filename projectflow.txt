@@ -1,0 +1,2 @@
+1.Download the dataset and upload to s3. Create a bucket and upload data.
+2. Will do data ingestion from S3. To do that , will need to connect with AWS using aws configure. 
