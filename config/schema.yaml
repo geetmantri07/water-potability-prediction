@@ -1,0 +1,23 @@
+columns:
+  ph: float
+  Hardness: float
+  Solids: float
+  Chloramines: float
+  Sulfate: float
+  Conductivity: float
+  Organic_carbon: float
+  Trihalomethanes: float
+  Turbidity: float
+  Potability: int
+
+numerical_columns:
+  - ph
+  - Hardness
+  - Solids
+  - Chloramines
+  - Sulfate
+  - Conductivity
+  - Organic_carbon
+  - Trihalomethanes
+  - Turbidity
+  - Potability
