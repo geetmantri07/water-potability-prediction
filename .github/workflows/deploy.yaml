@@ -36,7 +36,19 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          # Stop and remove old container
           docker stop water-app || true
           docker rm water-app || true
+
+          # Clean old images (avoid disk issues)
+          docker system prune -af || true
+
+          # Load new image
           docker load < water-app.tar.gz
-          docker run -d -p 8000:8000 --name water-app water-app
+
+          # Run container WITH AWS ENV VARIABLES
+          docker run -d -p 8000:8000 \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            -e AWS_DEFAULT_REGION=us-east-1 \
+            --name water-app water-app
