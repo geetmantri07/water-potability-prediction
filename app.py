@@ -11,9 +11,31 @@ from typing import Optional
 from src.constants import APP_HOST, APP_PORT
 from src.pipeline.prediction_pipeline import WaterData, WaterDataClassifier
 from src.pipeline.training_pipeline import TrainPipeline
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_fastapi_instrumentator import Instrumentator
+
+
+import time
 
 # Initialize FastAPI
 app = FastAPI()
+
+Instrumentator().instrument(app).expose(app)
+
+# -----------------------------
+# PROMETHEUS METRICS
+# -----------------------------
+REQUEST_COUNT = Counter(
+    "request_count_total",
+    "Total HTTP requests",
+    ["method", "endpoint"]
+)
+
+REQUEST_LATENCY = Histogram(
+    "request_latency_seconds",
+    "Request latency",
+    ["endpoint"]
+)
 
 # Static + Templates
 #app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -27,6 +49,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -----------------------------
+# MIDDLEWARE FOR METRICS
+# -----------------------------
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    duration = time.time() - start_time
+
+    REQUEST_COUNT.labels(request.method, request.url.path).inc()
+    REQUEST_LATENCY.labels(request.url.path).observe(duration)
+
+    return response
 
 
 # -----------------------------
@@ -118,6 +156,13 @@ async def predictRouteClient(request: Request):
 
     except Exception as e:
         return {"status": False, "error": str(e)}
+    
+# -----------------------------
+# METRICS ENDPOINT
+# -----------------------------
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 # -----------------------------
