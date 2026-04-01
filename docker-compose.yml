@@ -8,6 +8,10 @@ services:
     ports:
       - "8000:8000"
 
+    env_file:
+      - .env
+    
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -26,7 +30,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
-      
+
 
 volumes:
   grafana_data:
