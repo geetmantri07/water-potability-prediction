@@ -10,45 +10,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Build Docker image
-      run: docker build -t water-app .
-
-    - name: Save Docker image
-      run: docker save water-app | gzip > water-app.tar.gz
-
-    - name: Copy image to EC2
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        source: "water-app.tar.gz"
-        target: "/home/ubuntu/"
-
-    - name: Deploy on EC2
+    - name: Deploy to EC2
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Stop and remove old container
-          docker stop water-app || true
-          docker rm water-app || true
+          cd /home/ubuntu/water-potability-prediction
+          git pull origin main
+          docker compose down
+          docker system prune -af
+          docker compose up -d --build
 
-          # Clean old images (avoid disk issues)
-          docker system prune -af || true
+# name: CI/CD Pipeline
 
-          # Load new image
-          docker load < water-app.tar.gz
+# on:
+#   push:
+#     branches:
+#       - main
 
-          # Run container WITH AWS ENV VARIABLES
-          docker run -d -p 8000:8000 \
-            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            -e AWS_DEFAULT_REGION=us-east-1 \
-            --name water-app water-app
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+
+#     - name: Build Docker image
+#       run: docker build -t water-app .
+
+#     - name: Save Docker image
+#       run: docker save water-app | gzip > water-app.tar.gz
+
+#     - name: Copy image to EC2
+#       uses: appleboy/scp-action@master
+#       with:
+#         host: ${{ secrets.EC2_HOST }}
+#         username: ${{ secrets.EC2_USER }}
+#         key: ${{ secrets.EC2_SSH_KEY }}
+#         source: "water-app.tar.gz"
+#         target: "/home/ubuntu/"
+
+#     - name: Deploy on EC2
+#       uses: appleboy/ssh-action@master
+#       with:
+#         host: ${{ secrets.EC2_HOST }}
+#         username: ${{ secrets.EC2_USER }}
+#         key: ${{ secrets.EC2_SSH_KEY }}
+#         script: |
+#           # Stop and remove old container
+#           docker stop water-app || true
+#           docker rm water-app || true
+
+#           # Clean old images (avoid disk issues)
+#           docker system prune -af || true
+
+#           # Load new image
+#           docker load < water-app.tar.gz
+
+#           # Run container WITH AWS ENV VARIABLES
+#           docker run -d -p 8000:8000 \
+#             -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+#             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+#             -e AWS_DEFAULT_REGION=us-east-1 \
+#             --name water-app water-app
